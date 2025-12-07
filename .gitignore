@@ -1,34 +1,49 @@
-.DS_Store
-**/.DS_Store
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
 
-__pycache__
-**/__pycache__
+# Virtualenv
+venv/
+.env
+*.venv
+3ddfa_venv/
+.venv/
+pip-wheel-metadata/
 
-.idea/
-tmp/
-
+# Jupyter
 .ipynb_checkpoints/
 
-*gif.py
-refine_index.py
-test*.py
-clean_git.sh
+# OS
+.DS_Store
+Thumbs.db
 
-websmooth.py
-demo_webcam.py
+# Data / models / weights / outputs (do NOT upload datasets or model weights)
+datasets/
+data/
+weights/
+models/
+*.pth
+*.pt
+*.onnx
+*.pkl
+*.npy
+*.npz
+*.obj
+*.ply
 
-examples/inputs/spoof/
-weights/*.onnx
-configs/ncc_code_53215.npy
-pr.*
-*.docx
-render_3dface.ipynb
-test_onnx.py
-benchmark.py
-how_to_make_video_demos.txt
+# Logs and results
+logs/
+results/
+eval/
+*.log
 
+# vscode
 .vscode/
-test_pr*.py
-demo_for_*.py
-examples/**/zou*
-examples/inputs/videos
+
+# kaggle creds (if ever present)
+kaggle.json

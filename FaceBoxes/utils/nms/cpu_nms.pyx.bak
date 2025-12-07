@@ -26,8 +26,8 @@ def cpu_nms(np.ndarray[np.float32_t, ndim=2] dets, np.float thresh):
     cdef np.ndarray[np.int32_t, ndim=1] order = np.ascontiguousarray(order_py, dtype=np.int32)
 
     cdef int ndets = dets.shape[0]
-    cdef np.ndarray[np.int32_t, ndim=1] suppressed = \
-            np.zeros((ndets), dtype=np.int32)
+    cdef np.ndarray[np.int_t, ndim=1] suppressed = \
+            np.zeros((ndets), dtype=np.int)
 
     # nominal indices
     cdef int _i, _j
