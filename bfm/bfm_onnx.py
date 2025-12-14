@@ -80,17 +80,16 @@ def convert_bfm_to_onnx(bfm_onnx_fp, shape_dim=40, exp_dim=10):
     dummy_input = torch.randn(3, 3), torch.randn(3, 1), torch.randn(shape_dim, 1), torch.randn(exp_dim, 1)
     R, offset, alpha_shp, alpha_exp = dummy_input
     torch.onnx.export(
-        bfm_decoder,
-        (R, offset, alpha_shp, alpha_exp),
-        bfm_onnx_fp,
-        input_names=['R', 'offset', 'alpha_shp', 'alpha_exp'],
-        output_names=['output'],
-        dynamic_axes={
-            'alpha_shp': [0],
-            'alpha_exp': [0],
-        },
-        do_constant_folding=True
+    bfm_decoder,
+    (R, offset, alpha_shp, alpha_exp),
+    bfm_onnx_fp,
+    input_names=['R', 'offset', 'alpha_shp', 'alpha_exp'],
+    output_names=['output'],
+    opset_version=18,             # required for PyTorch ≥ 2.1
+    do_constant_folding=True
     )
+
+
     print(f'Convert {bfm_fp} to {bfm_onnx_fp} done.')
 
 
