@@ -47,6 +47,7 @@ const renderModes = [
 ] as const
 
 export default function Home() {
+
   const mountRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -61,6 +62,26 @@ export default function Home() {
   const [renderMode, setRenderMode] = useState<RenderMode>("mesh");
   const pointsRef = useRef<THREE.Points | null>(null);
   const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const resize = () => {
+      if (!mountRef.current || !cameraRef.current || !rendererRef.current) return;
+
+      const { clientWidth, clientHeight } = mountRef.current;
+
+      rendererRef.current.setSize(clientWidth, clientHeight, false);
+
+      cameraRef.current.aspect = clientWidth / clientHeight;
+      cameraRef.current.updateProjectionMatrix();
+    };
+
+    resize();
+    window.addEventListener("resize", resize);
+
+    return () => window.removeEventListener("resize", resize);
+  }, []);
 
   /* =========================
      1️⃣ INIT THREE.JS
@@ -81,10 +102,10 @@ export default function Home() {
     camera.lookAt(0, 0, 0);
     
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(
-      mountRef.current.clientWidth,
-      mountRef.current.clientHeight
-    );
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.domElement.style.width = "100%";
+    renderer.domElement.style.height = "100%";
+    renderer.domElement.style.display = "block";
 
     mountRef.current.appendChild(renderer.domElement);
 
@@ -159,7 +180,12 @@ export default function Home() {
     animate();
 
     return () => {
-      renderer.dispose();
+      window.removeEventListener("resize", resize);
+
+  if (rendererRef.current) {
+        rendererRef.current.dispose();
+        mountRef.current?.removeChild(rendererRef.current.domElement);
+      }
     };
   }, []);
 
@@ -249,12 +275,20 @@ export default function Home() {
     geometry.computeBoundingBox();
 
     const box = geometry.boundingBox!;
-    const size = new THREE.Vector3();
-    box.getSize(size);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+
+    geometry.translate(-center.x, -center.y, -center.z)
+
+    // 2️⃣ Normalize scale
+    const size = new THREE.Vector3()
+    box.getSize(size)
 
     const scale = 1 / Math.max(size.x, size.y);
     meshRef.current.scale.setScalar(scale);
     pointsRef.current!.scale.setScalar(scale);
+
+    meshRef.current.rotation.set(0, 0, 0)
   };
 
   /* =========================
@@ -293,21 +327,18 @@ export default function Home() {
   }, [renderMode]);
 
   return (
-    <>
+    <div>
     <Navbar></Navbar>
-    <div className="w-screen h-screen overflow-x-hidden" id = "hero">
+    <div className="w-full h-screen overflow-x-hidden" id = "hero">
       <div>
         <Hero2Dto3D></Hero2Dto3D>
       </div>
     </div>
-    <div className="w-screen h-screen overflow-x-hidden" id = "inference">
-      <section
-  id="inference"
-  className="w-screen h-screen flex items-center justify-center bg-background px-6"
+    <div className="w-full h-screen overflow-x-hidden">
+    <section id="inference"
+  className="w-full h-screen overflow-x-hidden flex items-center justify-center bg-background px-6 pt-10"
 >
-  <Card className="w-full max-w-7xl h-[90vh] flex flex-col">
-    
-    {/* Header */}
+  <Card className="w-full max-w-7xl h-[80vh] flex flex-col">
     <CardHeader className="flex flex-row items-center justify-between border-b">
       <CardTitle>Live 2D → 3D Inference</CardTitle>
       <div className="flex gap-2">
@@ -365,29 +396,26 @@ export default function Home() {
       </div>
     </CardHeader>
 
-    {/* Content */}
-    <CardContent className="flex flex-1 gap-4 p-4">
+    <CardContent className=" flex flex-1 gap-4 p-4">
       
-      {/* Camera Card */}
-      <Card className="relative w-1/2 overflow-hidden flex flex-col">
+      <Card className="h-full w-1/2 overflow-hidden flex flex-col">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm text-muted-foreground">
             Camera Input
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="relative flex-1 p-0">
+        <CardContent className="relative flex-1 p-0 overflow-hidden">
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
-            className="absolute inset-0 w-full h-full object-contain scale-x-[-1]"
+            className="absolute inset-0 w-full h-full object-contain "
           />
         </CardContent>
       </Card>
 
-      {/* 3D / Mesh Card */}
       <Card className="relative w-1/2 overflow-hidden">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm text-muted-foreground">
@@ -405,7 +433,6 @@ export default function Home() {
 
     </CardContent>
     
-    {/* Optional footer */}
     <CardFooter className="border-t text-xs text-muted-foreground">
       Real-time face landmarks → 3D mesh inference
     </CardFooter>
@@ -415,6 +442,6 @@ export default function Home() {
 
     </div>
 
-    </>
+    </div>
   );
 }

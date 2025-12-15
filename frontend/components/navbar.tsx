@@ -36,7 +36,7 @@ export default function Navbar() {
   if (!mounted) return null;
   const logoSrc = resolvedTheme === 'dark' ? '/logo-white.png' : '/logo-black.png';
   return (
-    <div className = "w-full h-25 flex justify-between items-center px-8 lg:px-16 py-4 backdrop-blur-sm top-0 z-10 sticky ">
+    <div className = "w-full h-25 flex justify-between items-center px-8 lg:px-16 py-4 backdrop-blur-sm top-0 z-10 sticky overflow-x-hidden ">
     {/* // <div> */}
     <Button variant="ghost">
         <Link href = "/#hero">

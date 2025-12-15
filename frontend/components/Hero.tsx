@@ -13,17 +13,24 @@ import {
 export default function Hero2Dto3D() {
   const items = [
     {
-      title: "Tyler Durden",
+      title: "2d to 3d",
       image:
-        "https://images.unsplash.com/photo-1732310216648-603c0255c000?q=80&w=3540&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "./image-to-3d.jpg",
       className: "absolute top-10 left-[20%] rotate-[-5deg]",
     },
     {
-      title: "The Narrator",
+      title: "Social Media filters",
       image:
-        "https://images.unsplash.com/photo-1697909623564-3dae17f6c20b?q=80&w=2667&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "./social-media-filter.jpg",
       className: "absolute top-40 left-[25%] rotate-[-7deg]",
-    }]
+    },
+    {
+      title: "Avatars and Vtubers",
+      image:
+        "./apple-avatars.jpg",
+      className: "absolute top-40 left-[25%] rotate-[-7deg]",
+    },
+]
   const words = [
     "VTuber Rigging",
     "Social Media Filters",
@@ -93,17 +100,20 @@ export default function Hero2Dto3D() {
         <div className="md:col-span-2 flex items-center justify-center aspect-square w-full h-full">
             <DraggableCardContainer className="relative flex min-h-screen w-full items-center justify-center overflow-clip">
             {items.map((item) => (
-            <DraggableCardBody className={item.className}>
-            <img
-                src={item.image}
-                alt={item.title}
-                className="pointer-events-none relative z-10 h-80 w-80 object-cover"
-            />
-            <h3 className="mt-4 text-center text-2xl font-bold text-neutral-700 dark:text-neutral-300">
-                {item.title}
-            </h3>
-            </DraggableCardBody>
-        ))}
+                <DraggableCardBody
+                    key={item.title}
+                    className={item.className}
+                >
+                    <img
+                    src={item.image}
+                    alt={item.title}
+                    className="pointer-events-none relative z-10 h-80 w-80 object-cover"
+                    />
+                    <h3 className="mt-4 text-center text-2xl font-bold text-neutral-700 dark:text-neutral-300">
+                    {item.title}
+                    </h3>
+                </DraggableCardBody>
+                ))}
         </DraggableCardContainer>
         </div>
 
