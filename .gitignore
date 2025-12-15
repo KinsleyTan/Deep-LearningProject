@@ -24,9 +24,11 @@ Thumbs.db
 
 # Data / models / weights / outputs (do NOT upload datasets or model weights)
 datasets/
+frontend/ node_modules
+frontend/.next/
 data/
-weights/
-models/
+# weights/
+# models/
 *.pth
 *.pt
 *.onnx
