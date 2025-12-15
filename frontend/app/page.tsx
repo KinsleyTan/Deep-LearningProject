@@ -1,15 +1,50 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef , useState} from "react";
 import * as THREE from "three";
 import { FACEMESH_TRIANGLE } from "@/lib/facemesh_triangles";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-
+import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation";4
+import Hero2Dto3D from "@/components/Hero";
+import { Check, ChevronsUpDown } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 type Landmark = {
   x: number;
   y: number;
   z: number;
 };
+import Navbar from "@/components/navbar";
+// import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+
+type RenderMode = "mesh" | "wireframe" | "points";
+const renderModes = [
+  { value: "mesh", label: "Mesh" },
+  { value: "wireframe", label: "Wireframe" },
+  { value: "points", label: "Points" },
+] as const
 
 export default function Home() {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -17,8 +52,15 @@ export default function Home() {
 
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const meshRef = useRef<THREE.Mesh | null>(null);
+
+  const [isCameraOn, setIsCameraOn] = useState(false);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [renderMode, setRenderMode] = useState<RenderMode>("mesh");
+  const pointsRef = useRef<THREE.Points | null>(null);
+  const [open, setOpen] = useState(false)
 
   /* =========================
      1️⃣ INIT THREE.JS
@@ -35,8 +77,9 @@ export default function Home() {
       0.1,
       1000
     );
-    camera.position.z = 2;
-
+    camera.position.z = 1.5;
+    camera.lookAt(0, 0, 0);
+    
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(
       mountRef.current.clientWidth,
@@ -51,22 +94,59 @@ export default function Home() {
 
     // 🔹 Persistent point cloud
     const geometry = new THREE.BufferGeometry();
+    const dummyPositions = new Float32Array(478 * 3);
+    geometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(dummyPositions, 3)
+    );
     geometry.setIndex(FACEMESH_TRIANGLE);
-    
-    const material = new THREE.MeshStandardMaterial({
-      color: 0x00ffcc,
+
+    // === MESH MATERIAL ===
+    const meshMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffe0bd,
+      roughness: 0.6,
+      metalness: 0.0,
       side: THREE.DoubleSide,
     });
 
-    const faceMesh = new THREE.Mesh(geometry, material);
+    // === POINT MATERIAL ===
+    const pointsMaterial = new THREE.PointsMaterial({
+      color: 0xffe0bd,
+      size: 0.015,            // 👈 CRITICAL
+      sizeAttenuation: true,
+      depthTest: false,
+    });
+    
+    const material = new THREE.MeshStandardMaterial({
+      color: 0x00ffcc,        // skin-like
+      roughness: 0.6,         // softer highlights
+      metalness: 0.0,         // skin is not metal
+      side: THREE.DoubleSide,
+      flatShading: false,
+    });
+    material.wireframe = true;
+
+
+    const faceMesh = new THREE.Mesh(geometry, meshMaterial)as THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
+    const facePoints = new THREE.Points(geometry, pointsMaterial);
     scene.add(faceMesh);
 
     meshRef.current = faceMesh;
-    const light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(0, 0, 2);
-    scene.add(light);
+    pointsRef.current = facePoints;
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    keyLight.position.set(1, 1, 2);
+    scene.add(keyLight);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+    fillLight.position.set(-1, 0.5, 1);
+    scene.add(fillLight);
+
+    const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+    scene.add(ambient);
+
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    rimLight.position.set(0, 0, -2);
+    scene.add(rimLight);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -86,15 +166,34 @@ export default function Home() {
   /* =========================
      2️⃣ INIT WEBCAM
   ========================= */
-  useEffect(() => {
-    navigator.mediaDevices
-      .getUserMedia({ video: true })
-      .then((stream) => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      });
-  }, []);
+
+  async function startCamera() {
+    if (isCameraOn) return;
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user" },
+      audio: false,
+    });
+
+    streamRef.current = stream;
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+    }
+
+    setIsCameraOn(true);
+  }
+
+  function stopCamera() {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+
+    setIsCameraOn(false);
+  }
 
   /* =========================
      3️⃣ LIVE INFERENCE
@@ -138,10 +237,15 @@ export default function Home() {
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     geometry.setIndex(FACEMESH_TRIANGLE);
+    geometry.computeVertexNormals();
     
-    meshRef.current.geometry.dispose();
-    meshRef.current.geometry = geometry;
+    meshRef.current!.geometry.dispose();
+    pointsRef.current!.geometry.dispose();
 
+    meshRef.current!.geometry = geometry;
+    pointsRef.current!.geometry = geometry;
+
+    geometry.computeVertexNormals();
     geometry.computeBoundingBox();
 
     const box = geometry.boundingBox!;
@@ -150,6 +254,7 @@ export default function Home() {
 
     const scale = 1 / Math.max(size.x, size.y);
     meshRef.current.scale.setScalar(scale);
+    pointsRef.current!.scale.setScalar(scale);
   };
 
   /* =========================
@@ -160,24 +265,156 @@ export default function Home() {
     return () => clearInterval(id);
   }, []);
 
-  return (
-    <main className="w-screen h-screen flex">
-      {/* Webcam (hidden or visible) */}
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        className="w-0.5 z-10"
-        style={{ width: "50%", transform: "scaleX(-1)" }}
-      />
+    useEffect(() => {
+    if (!sceneRef.current) return;
 
-      {/* Three.js */}
-      <div
-        ref={mountRef}
-        className="border"
-        style={{ width: "50%", height: "100vh" }}
-      />
-    </main>
+    const scene = sceneRef.current;
+
+    if (meshRef.current) scene.remove(meshRef.current);
+    if (pointsRef.current) scene.remove(pointsRef.current);
+
+    if (renderMode === "mesh") {
+      (
+        meshRef.current!.material as THREE.MeshStandardMaterial
+      ).wireframe = false;
+      scene.add(meshRef.current!);
+    }
+
+    if (renderMode === "wireframe") {
+      (
+        meshRef.current!.material as THREE.MeshStandardMaterial
+      ).wireframe = true;
+      scene.add(meshRef.current!);
+    }
+
+    if (renderMode === "points") {
+      scene.add(pointsRef.current!);
+    }
+  }, [renderMode]);
+
+  return (
+    <>
+    <Navbar></Navbar>
+    <div className="w-screen h-screen overflow-x-hidden" id = "hero">
+      <div>
+        <Hero2Dto3D></Hero2Dto3D>
+      </div>
+    </div>
+    <div className="w-screen h-screen overflow-x-hidden" id = "inference">
+      <section
+  id="inference"
+  className="w-screen h-screen flex items-center justify-center bg-background px-6"
+>
+  <Card className="w-full max-w-7xl h-[90vh] flex flex-col">
+    
+    {/* Header */}
+    <CardHeader className="flex flex-row items-center justify-between border-b">
+      <CardTitle>Live 2D → 3D Inference</CardTitle>
+      <div className="flex gap-2">
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                className="w-[180px] justify-between"
+              >
+                {renderModes.find(m => m.value === renderMode)?.label ?? "Render mode"}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+
+            <PopoverContent className="w-[180px] p-0">
+              <Command>
+                <CommandInput placeholder="Search mode..." />
+                <CommandList>
+                  <CommandEmpty>No mode found.</CommandEmpty>
+                  <CommandGroup>
+                    {renderModes.map((mode) => (
+                      <CommandItem
+                        key={mode.value}
+                        value={mode.value}
+                        onSelect={(value) => {
+                          setRenderMode(value as RenderMode)
+                          setOpen(false)
+                        }}
+                      >
+                        {mode.label}
+                        <Check
+                          className={cn(
+                            "ml-auto h-4 w-4",
+                            renderMode === mode.value ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        {!isCameraOn ? (
+          <Button size="lg" onClick={startCamera}>
+            Turn on Camera
+          </Button>
+        ) : (
+          <Button size="lg" variant="destructive" onClick={stopCamera}>
+            Stop Camera
+          </Button>
+        )}
+      </div>
+    </CardHeader>
+
+    {/* Content */}
+    <CardContent className="flex flex-1 gap-4 p-4">
+      
+      {/* Camera Card */}
+      <Card className="relative w-1/2 overflow-hidden flex flex-col">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm text-muted-foreground">
+            Camera Input
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent className="relative flex-1 p-0">
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="absolute inset-0 w-full h-full object-contain scale-x-[-1]"
+          />
+        </CardContent>
+      </Card>
+
+      {/* 3D / Mesh Card */}
+      <Card className="relative w-1/2 overflow-hidden">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm text-muted-foreground">
+            3D Mesh Output
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent className="flex-1 p-0">
+          <div
+            ref={mountRef}
+            className="absolute inset-0"
+          />
+        </CardContent>
+      </Card>
+
+    </CardContent>
+    
+    {/* Optional footer */}
+    <CardFooter className="border-t text-xs text-muted-foreground">
+      Real-time face landmarks → 3D mesh inference
+    </CardFooter>
+
+  </Card>
+</section>
+
+    </div>
+
+    </>
   );
 }

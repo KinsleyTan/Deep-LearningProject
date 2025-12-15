@@ -23,10 +23,12 @@ pip-wheel-metadata/
 Thumbs.db
 
 # Data / models / weights / outputs (do NOT upload datasets or model weights)
-datasets/
+dataset/
 frontend/ node_modules
 frontend/.next/
+dashboard/
 data/
+test/
 # weights/
 # models/
 *.pth
