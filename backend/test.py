@@ -92,12 +92,12 @@ async def infer(file: UploadFile = File(...)):
         "expression": expr.tolist()  # 10D
     }
 
-@app.get("/debug")
-def debug():
-    return {
-        "landmarks": [
-            {"x": 0.1, "y": 0.1, "z": 0.0},
-            {"x": 0.9, "y": 0.1, "z": 0.0},
-            {"x": 0.5, "y": 0.9, "z": 0.0},
-        ]
-    }
+# @app.get("/debug")
+# def debug():
+#     return {
+#         "landmarks": [
+#             {"x": 0.1, "y": 0.1, "z": 0.0},
+#             {"x": 0.9, "y": 0.1, "z": 0.0},
+#             {"x": 0.5, "y": 0.9, "z": 0.0},
+#         ]
+#     }
