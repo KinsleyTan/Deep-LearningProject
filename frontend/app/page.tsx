@@ -294,10 +294,10 @@ export default function Home() {
   /* =========================
      4️⃣ RUN LOOP (5 FPS)
   ========================= */
-  useEffect(() => {
-    const id = setInterval(captureAndInfer, 50);
-    return () => clearInterval(id);
-  }, []);
+    useEffect(() => {
+      const id = setInterval(captureAndInfer, 50);
+      return () => clearInterval(id);
+    }, []);
 
     useEffect(() => {
     if (!sceneRef.current) return;
