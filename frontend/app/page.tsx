@@ -4,11 +4,12 @@ import { useEffect, useRef , useState} from "react";
 import * as THREE from "three";
 import { FACEMESH_TRIANGLE } from "@/lib/facemesh_triangles";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation";4
 import Hero2Dto3D from "@/components/Hero";
 import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { API_BASE_URL } from "@/lib/config";
+import { Badge } from "@/components/ui/badge"
 import {
   Command,
   CommandEmpty,
@@ -62,6 +63,9 @@ export default function Home() {
   const [renderMode, setRenderMode] = useState<RenderMode>("mesh");
   const pointsRef = useRef<THREE.Points | null>(null);
   const [open, setOpen] = useState(false)
+  const [isopen, setIsopen] = useState(false);
+  const prevScores = useRef<number[]>([]);
+
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -180,9 +184,7 @@ export default function Home() {
     animate();
 
     return () => {
-      window.removeEventListener("resize", resize);
-
-  if (rendererRef.current) {
+      if (rendererRef.current) {
         rendererRef.current.dispose();
         mountRef.current?.removeChild(rendererRef.current.domElement);
       }
@@ -243,10 +245,24 @@ export default function Home() {
     const formData = new FormData();
     formData.append("file", blob);
 
-    const res = await fetch("http://127.0.0.1:8000/infer", {
-      method: "POST",
-      body: formData,
-    });
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 3000);
+    if (!API_BASE_URL) {
+      console.error("❌ API_BASE_URL is missing at build time");
+      return;
+    }
+
+    let res;
+    try {
+      res = await fetch(`${API_BASE_URL}/infer`, {
+        method: "POST",
+        body: formData,
+        signal: controller.signal
+      });
+    } catch (e) {
+      console.warn("Fetch failed:", e);
+      return;
+    }
 
     const data = await res.json();
     if (!data.landmarks || data.landmarks.length === 0) return;
@@ -289,15 +305,43 @@ export default function Home() {
     pointsRef.current!.scale.setScalar(scale);
 
     meshRef.current.rotation.set(0, 0, 0)
+    console.log("EXP RAW:", data.expression);
+    if (data.expression) {
+    // Handle both nested and flat arrays
+    const expr = Array.isArray(data.expression[0])
+      ? data.expression[0]
+      : data.expression;
+
+    // Pick low-MSE parameters
+    const lowerLip = expr[3];   // lower lip out
+    const upperLipInv = -expr[5]; // invert upper lip inwards
+
+    // Average = raw score
+    const mouthRaw = (lowerLip + upperLipInv) / 2;
+
+    // Threshold — tweak as needed
+    const open = mouthRaw > 0.00125;
+
+    setIsopen(open);
+
+    console.log("EXP RAW:", expr);
+    console.log({
+      mouthRaw: mouthRaw.toFixed(5),
+      open
+    });
+  }
+
+
   };
 
   /* =========================
      4️⃣ RUN LOOP (5 FPS)
   ========================= */
-    useEffect(() => {
-      const id = setInterval(captureAndInfer, 50);
-      return () => clearInterval(id);
-    }, []);
+  useEffect(() => {
+    const id = setInterval(captureAndInfer, 150);
+    return () => clearInterval(id);
+  }, []);
+
 
     useEffect(() => {
     if (!sceneRef.current) return;
@@ -342,6 +386,16 @@ export default function Home() {
     <CardHeader className="flex flex-row items-center justify-between border-b">
       <CardTitle>Live 2D → 3D Inference</CardTitle>
       <div className="flex gap-2">
+        {!isopen ? (
+          <Badge variant="secondary" >
+            close mouth
+          </Badge>
+        ) : (
+          <Badge variant="secondary"
+          className="bg-blue-500 text-white dark:bg-blue-600 px-2">
+            open mouth
+          </Badge>
+        )}
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
               <Button
