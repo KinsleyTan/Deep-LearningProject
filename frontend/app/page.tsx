@@ -64,7 +64,6 @@ export default function Home() {
   const pointsRef = useRef<THREE.Points | null>(null);
   const [open, setOpen] = useState(false)
   const [isopen, setIsopen] = useState(false);
-  const prevScores = useRef<number[]>([]);
 
 
   useEffect(() => {
@@ -334,9 +333,6 @@ export default function Home() {
 
   };
 
-  /* =========================
-     4️⃣ RUN LOOP (5 FPS)
-  ========================= */
   useEffect(() => {
     const id = setInterval(captureAndInfer, 150);
     return () => clearInterval(id);

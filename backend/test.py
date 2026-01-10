@@ -6,9 +6,9 @@ import cv2
 import numpy as np
 import mediapipe as mp
 import time
-t0 = time.time()
-# inference
-latency_ms = (time.time() - t0) * 1000
+# t0 = time.time()
+# # inference
+# latency_ms = (time.time() - t0) * 1000
 # =========================
 # App
 # =========================
