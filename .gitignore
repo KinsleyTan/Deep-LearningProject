@@ -35,9 +35,7 @@ notebooks/checkpoints/*.pth
 *.pt
 *.onnx
 *.pkl
-*.npy
 *.npz
-*.obj
 *.ply
 
 # Logs and results
